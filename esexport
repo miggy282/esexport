@@ -12,7 +12,7 @@ def cmd_args():
     parser.add_argument('-H', '--host',   help='Elasticsearch host')
     parser.add_argument('-i', '--index',  help='Index name')
     parser.add_argument('-t', '--trange', help='timerange from and to eg dd/mm/YY 00:00:32 to dd/mm/YY/ 00:00:32')
-    parser.add_argument('-l', '--log_path', help='log path e.g. /var/log/aem/author/error.log')
+    parser.add_argument('-q', '--query', help='lucene query')
     args = parser.parse_args()
 
     host = args.host
@@ -31,16 +31,13 @@ def cmd_args():
         'index': index, 
         'time_start': t_start, 
         'time_end': t_end, 
-        'log_path': log_path
+        'query': query
     } 
 
     return args
 
 # Initlise command line arguments 
 cmd = cmd_args()
-print cmd['time_start']
-print cmd['log_path']
-print cmd['time_end']
 # Build JSON query
 payload = json.dumps({
     "facets": {
@@ -56,7 +53,7 @@ payload = json.dumps({
                 "filtered": {
                   "query": {
                     "query_string": {
-                      "query": "tags:aem6 AND (tags:\"cmsa\" OR tags:\"cmsb\") AND" + cmd['log_path']
+                      "query": cmd['query']
                     }
                   },
                   "filter": {
