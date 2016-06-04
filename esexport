@@ -1,0 +1,128 @@
+#!/usr/bin/env python
+__author__ = "Miguel Sullivan"
+""" Export logs on CMSA and CMSB to plain text, modify below to change query behaviour"""
+
+import sys, json
+import requests 
+import argparse
+import time
+
+def cmd_args():
+    parser = argparse.ArgumentParser(description='Export Elasticsearch Logs')
+    parser.add_argument('-H', '--host',   help='Elasticsearch host')
+    parser.add_argument('-i', '--index',  help='Index name')
+    parser.add_argument('-t', '--trange', help='timerange from and to eg dd/mm/YY 00:00:32 to dd/mm/YY/ 00:00:32')
+    parser.add_argument('-l', '--log_path', help='log path e.g. /var/log/aem/author/error.log')
+    args = parser.parse_args()
+
+    host = args.host
+    log_path  = args.log_path
+    index = args.index
+    ts, te  = args.trange.split("to")
+
+    # Convert time to eppoch
+    pattern = '%d/%m/%Y %H:%M:%S'
+    t_start = int(time.mktime(time.strptime(ts.strip(), pattern)))
+    t_end   = int(time.mktime(time.strptime(te.strip(), pattern)))
+
+    # Return Dict 
+    args = {
+        'host': host, 
+        'index': index, 
+        'time_start': t_start, 
+        'time_end': t_end, 
+        'log_path': log_path
+    } 
+
+    return args
+
+# Initlise command line arguments 
+cmd = cmd_args()
+print cmd['time_start']
+print cmd['log_path']
+print cmd['time_end']
+# Build JSON query
+payload = json.dumps({
+    "facets": {
+        "0": {
+          "date_histogram": {
+            "field": "@timestamp",
+            "interval": "5m"
+          },
+          "global": "true",
+          "facet_filter": {
+            "fquery": {
+              "query": {
+                "filtered": {
+                  "query": {
+                    "query_string": {
+                      "query": "tags:aem6 AND (tags:\"cmsa\" OR tags:\"cmsb\") AND" + cmd['log_path']
+                    }
+                  },
+                  "filter": {
+                    "bool": {
+                      "must": [
+                        {
+                          "range": {
+                            "@timestamp": {
+                              "from": cmd['time_start'],
+                              "to": cmd['time_end']
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "size": 0
+})
+
+# Extract lines based on address ['hits']['hits'][index]['_source']['message']
+def extract_lines(data):
+    raw = data
+    index = len(raw['hits']['hits'])
+    for key in range(len(raw['hits']['hits'])):
+       print  json.dumps(raw['hits']['hits'][key]["_source"]["message"]).strip()
+    
+def scroll_continue(s_id):
+    querystring = {'scroll_id': s_id}
+    r = requests.get(cmd['host'] + ":9200/_search/scroll?scroll=1m", params=querystring)
+    json_data = json.loads(r.text)
+    return json_data
+
+if __name__ == '__main__':
+    # requests  arguments 
+    url = cmd['host'] + ":9200/" + cmd['index'] + "/_searchm"
+    headers = {'Content-Type': "application/json; charset=UTF-8"}
+    querystring = {"scroll":"1m"}
+    # Initial Request
+    try:
+       r = requests.post(url, json=payload, headers=headers, params=querystring)
+       s_id  = json.loads(r.text)['_scroll_id']
+       hits  = json.loads(r.text)
+       # Only scroll if need be
+       # If theres hits in the initial request we're going to extract them 
+       if hits:
+          extract_lines(hits)
+          # Contintue scrolling if theres more hits
+          while True:
+             try:
+                # Return _scroll results to variable
+                hits = scroll_continue(s_id)
+             except requests.exceptions.RequestException as e:
+                print  "Error: {}".format(e), "Failed"
+                sys.exit(1)
+             if 'hits' in hits:
+                extract_lines(hits)
+             else: 
+                print "Completed! End of logs"
+                break
+                sys.exit(0)
+    except requests.exceptions.RequestException as e:
+       print  "Error: {}".format(e), "Failed"
+   
