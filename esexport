@@ -78,7 +78,6 @@ payload = json.dumps({
       },
       "size": 0
       })
-print payload
 # Extract lines based on address ['hits']['hits'][index]['_source']['message']
 def extract_lines(data):
     raw = data
@@ -99,9 +98,12 @@ if __name__ == '__main__':
     # Initial Request
     try:
        r = requests.post(url, data=payload, headers=headers, params=querystring)
-       print r.status_code
-       s_id  = json.loads(r.text)['_scroll_id']
-       hits  = json.loads(r.text)
+       if r.status_code == 200:
+          print 'Submitting Query ...'
+          s_id  = json.loads(r.text)['_scroll_id']
+          hits  = json.loads(r.text)
+       else:
+         raise Exception("HTTPError, received status code: " + str(r.status_code))
        # Only scroll if need be
        # If theres hits in the initial request we're going to extract them 
        if hits:
