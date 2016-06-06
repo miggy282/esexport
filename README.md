@@ -3,7 +3,8 @@
 
 At the top of the file there should be a short introduction and/ or overview that explains **what** the project is. This description should match descriptions added for package managers (Gemspec, package.json, etc.)
 
-## Code Example
+## Example Usage
+/esexport -H http://elasticsearch.example.com --index my_index -q "lucene querey" --trange "27/05/2016 12:00:00  to 27/05/2016 12:10:00"  
 
 Show what the library does as concisely as possible, developers should be able to figure out **how** your project solves their problem by looking at the code example. Make sure the API you are showing off is obvious, and that your code is short and concise.
 
