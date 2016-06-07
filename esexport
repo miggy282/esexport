@@ -22,8 +22,8 @@ def cmd_args():
 
     # Convert time to eppoch
     pattern = '%d/%m/%Y %H:%M:%S'
-    t_start = int(time.mktime(time.strptime(ts.strip(), pattern)))
-    t_end   = int(time.mktime(time.strptime(te.strip(), pattern)))
+    t_start = int(time.mktime(time.strptime(ts.strip(), pattern))) * 1000
+    t_end   = int(time.mktime(time.strptime(te.strip(), pattern))) * 1000
 
     # Return Dict 
     args = {
@@ -39,45 +39,58 @@ def cmd_args():
 cmd = cmd_args()
 
 # Build JSON query
-payload = json.dumps({
-    "facets": {
-        "0": {
-          "date_histogram": {
-            "field": "@timestamp",
-            "interval": "5m"
-          },
-          "global": "true",
-          "facet_filter": {
-            "fquery": {
-              "query": {
-                "filtered": {
-                  "query": {
-                    "query_string": {
-                      "query": cmd['query']
-                    }
-                  },
-                  "filter": {
-                    "bool": {
-                      "must": [
-                        {
-                          "range": {
-                            "@timestamp": {
-                              "from": cmd['time_start'],
-                              "to": cmd['time_end']
-                            }
-                          }
-                        }
-                      ]
-                    }
-                  }
+payload = json.dumps(
+{
+  "query": {
+    "filtered": {
+      "query": {
+        "bool": {
+          "should": [
+            {
+              "query_string": {
+                "query": cmd['query']
+              }
+            }
+          ]
+        }
+      },
+      "filter": {
+        "bool": {
+          "must": [
+            {
+              "range": {
+                "@timestamp": {
+                  "from": cmd['time_start'],
+                  "to": cmd['time_end']
                 }
               }
             }
-          }
+          ]
         }
-      },
-      "size": 5000
-      })
+      }
+    }
+  },
+  "highlight": {
+    "fields": {},
+    "fragment_size": 2147483647,
+    "pre_tags": [
+      "@start-highlight@"
+    ],
+    "post_tags": [
+      "@end-highlight@"
+    ]
+  },
+  "size": 5000,
+  "sort": [
+    {
+      "@timestamp": {
+        "order": "desc",
+        "ignore_unmapped": "true"
+      }
+    },
+  ]
+})
+print payload
 # Extract lines based on address ['hits']['hits'][index]['_source']['message']
 
 def extract_lines(data):
