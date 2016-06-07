@@ -33,11 +33,11 @@ def cmd_args():
         'time_end': t_end, 
         'query': query
     } 
-
     return args
 
 # Initlise command line arguments 
 cmd = cmd_args()
+
 # Build JSON query
 payload = json.dumps({
     "facets": {
@@ -76,17 +76,18 @@ payload = json.dumps({
           }
         }
       },
-      "size": 0
+      "size": 5000
       })
 # Extract lines based on address ['hits']['hits'][index]['_source']['message']
+
 def extract_lines(data):
     raw = data
     for key in range(len(raw['hits']['hits'])):
        print  json.dumps(raw['hits']['hits'][key]["_source"]["message"]).strip()
-    
+      
 def scroll_continue(s_id):
     querystring = {'scroll_id': s_id}
-    r = requests.get(cmd['host'] + ":9200/_search/scroll?scroll=1m", params=querystring)
+    r = requests.get(cmd['host'] + ":9200/_search/scroll", params=querystring, timeout=60.001)
     json_data = json.loads(r.text)
     return json_data
 
@@ -95,18 +96,20 @@ if __name__ == '__main__':
     url = cmd['host'] + ":9200/" + cmd['index'] + "/_search"
     headers = {'Content-Type': "application/json; charset=UTF-8"}
     querystring = {"scroll":"1m"}
+
     # Initial Request
     try:
-       r = requests.post(url, data=payload, headers=headers, params=querystring)
+       r = requests.post(url, data=payload, headers=headers, params=querystring, timeout=60.001)
        if r.status_code == 200:
           print 'Submitting Query ...'
           s_id  = json.loads(r.text)['_scroll_id']
           hits  = json.loads(r.text)
        else:
          raise Exception("HTTPError, received status code: " + str(r.status_code))
+
        # Only scroll if need be
        # If theres hits in the initial request we're going to extract them 
-       if hits:
+       if hits['hits']['hits']:
           extract_lines(hits)
           # Contintue scrolling if theres more hits
           while True:
@@ -125,6 +128,9 @@ if __name__ == '__main__':
                 print "Completed! End of logs"
                 break
                 sys.exit(0)
+       else:
+          print "No hits found!"
+
     except requests.exceptions.RequestException as e:
        print  "Error: {}".format(e), "Failed"
    
