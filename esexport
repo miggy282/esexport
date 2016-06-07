@@ -78,6 +78,7 @@ payload = json.dumps({
       },
       "size": 5000
       })
+print payload
 # Extract lines based on address ['hits']['hits'][index]['_source']['message']
 
 def extract_lines(data):
@@ -93,13 +94,19 @@ def scroll_continue(s_id):
 
 if __name__ == '__main__':
     # requests  arguments 
-    url = cmd['host'] + ":9200/" + cmd['index'] + "/_search"
+    url = cmd['host'] + ":9200/" + cmd['index'] + "/_search/?scroll=1m"
     headers = {'Content-Type': "application/json; charset=UTF-8"}
     querystring = {"scroll":"1m"}
 
     # Initial Request
     try:
+<<<<<<< HEAD
        r = requests.post(url, data=payload, headers=headers, params=querystring, timeout=60.001)
+=======
+       r = requests.get(url, headers=headers, params=payload, timeout=60.001)
+       print r.text
+       print r
+>>>>>>> 5bb659b05db949857ad6ff7ea9fcaa13f322e674
        if r.status_code == 200:
           print 'Submitting Query ...'
           s_id  = json.loads(r.text)['_scroll_id']
