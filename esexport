@@ -78,7 +78,6 @@ payload = json.dumps({
       },
       "size": 5000
       })
-print payload
 # Extract lines based on address ['hits']['hits'][index]['_source']['message']
 
 def extract_lines(data):
