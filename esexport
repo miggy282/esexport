@@ -80,7 +80,7 @@ payload = json.dumps(
       "@end-highlight@"
     ]
   },
-  "size": 5000,
+  "size": 10000,
   "sort": [
     {
       "@timestamp": {
@@ -90,7 +90,7 @@ payload = json.dumps(
     },
   ]
 })
-print payload
+# print payload
 # Extract lines based on address ['hits']['hits'][index]['_source']['message']
 
 def extract_lines(data):
@@ -104,7 +104,7 @@ def scroll_continue(s_id):
                    "scroll" : "1m"
                   }
 
-    r = requests.get(cmd['host'] + ":9200/_search/scroll", params=querystring, timeout=60.001)
+    r = requests.get(cmd['host'] + ":9200/_search/scroll", params=querystring)
     json_data = json.loads(r.text)
     return json_data
 
@@ -116,9 +116,7 @@ if __name__ == '__main__':
 
     # Initial Request
     try:
-       r = requests.post(url, data=payload, headers=headers, params=querystring, timeout=60.001)
-       print r.text
-       print r
+       r = requests.post(url, data=payload, headers=headers, params=querystring)
        if r.status_code == 200:
           print 'Submitting Query ...'
           s_id  = json.loads(r.text)['_scroll_id']
