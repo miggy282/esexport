@@ -5,6 +5,10 @@ Simple elasticsearch export, exports your data using the elasticsearch scroll AP
 ## Example Usage
 ./esexport -H http://elasticsearch.example.com --index my_index --query ' your: "lucene querey" ' --trange "27/05/2016 12:00:00  to 27/05/2016 12:10:00"  
 
+## TO DO
+- Add workers threads to speed up exportation
+- Bug: Adjust epoch timestamp based on timezone
+
 
 
 
